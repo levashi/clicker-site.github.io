@@ -39,13 +39,10 @@ interface GameEvent {
 function getDevCode(): number {
   const now = new Date();
   const year = now.getFullYear();
-  const jan1 = new Date(year, 0, 1);
-  const dayOfYear = Math.floor((now.getTime() - jan1.getTime()) / 86400000) + 1;
-  const weekNum = Math.ceil(dayOfYear / 7);
+  const day = now.getDate();
   const year2d = year % 100;
-  const week2d = weekNum;
-  if (weekNum % 2 === 0) return week2d * 100 + year2d;
-  return year2d * 100 + week2d;
+  if (day % 2 === 0) return day * 100 + year2d;
+  return year2d * 100 + day;
 }
 
 const CODE = getDevCode();
@@ -657,7 +654,7 @@ export default function App() {
               autoFocus
             />
             <div className="dev-hint">
-              Code hebdomadaire. Révélé quand tu possèdes tout.
+              Code quotidien. Révélé quand tu possèdes tout.
               {allOwned && <><br /><strong>Code : {CODE}</strong></>}
             </div>
             <div className="btn-group">
