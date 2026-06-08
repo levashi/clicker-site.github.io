@@ -153,21 +153,19 @@ export default function App() {
     return () => clearInterval(id);
   }, [perSecond]);
 
-  // Coins record tracking (uses ref to avoid re-render loop)
+// Coins record tracking (uses ref to avoid re-render loop)
   useEffect(() => {
-    if (!everWon) {
-      setIsBlinking(false);
-      return;
-    }
     if (coins > bestCoinsRef.current) {
-      setIsBlinking(true);
-      if (!recordFlashShown.current) {
+      bestCoinsRef.current = coins;
+      setBestCoins(coins);
+      localStorage.setItem('clicker-best-coins', String(coins));
+      // Flash/blink only after first win
+      if (everWon && !recordFlashShown.current) {
+        setIsBlinking(true);
         setRecordFlashTime(Date.now());
         setTimeout(() => setRecordFlashTime(null), 4000);
         recordFlashShown.current = true;
       }
-      bestCoinsRef.current = coins;
-      setBestCoins(coins);
     } else {
       setIsBlinking(false);
     }
