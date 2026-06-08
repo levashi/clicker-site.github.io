@@ -38,11 +38,12 @@ interface GameEvent {
 
 function getDevCode(): number {
   const now = new Date();
-  const year = now.getFullYear();
   const day = now.getDate();
-  const year2d = year % 100;
-  if (day % 2 === 0) return day * 100 + year2d;
-  return year2d * 100 + day;
+  const jan1 = new Date(now.getFullYear(), 0, 1);
+  const dayOfYear = Math.floor((now.getTime() - jan1.getTime()) / 86400000) + 1;
+  const week = Math.ceil(dayOfYear / 7);
+  if (week % 2 === 0) return day * 100 + week;
+  return week * 100 + day;
 }
 
 const CODE = getDevCode();
