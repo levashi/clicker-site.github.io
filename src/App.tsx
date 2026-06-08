@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import './App.css';
 
 interface Offer {
@@ -439,6 +440,7 @@ export default function App() {
 
   return (
     <div className={`game theme-${themeClass}`}>
+      <Analytics mode="production" />
       {/* Record flash animation */}
       {recordFlashTime != null && (
         <div className="record-flash">
