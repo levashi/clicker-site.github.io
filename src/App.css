@@ -1742,8 +1742,9 @@ body {
   .best-time {
     position: static;
     transform: none;
-    margin-bottom: 4px;
-    padding: 3px 8px;
+    margin: 0 auto 2px;
+    padding: 2px 8px;
+    justify-content: center;
   }
 
   .best-time-icon {
@@ -1751,11 +1752,11 @@ body {
   }
 
   .best-time-label {
-    font-size: 9px;
+    font-size: 8px;
   }
 
   .best-time-value {
-    font-size: 12px;
+    font-size: 11px;
   }
 
   .record-flash-text {

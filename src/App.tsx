@@ -337,17 +337,10 @@ export default function App() {
 
   const allOwned = offers.every(o => o.count > 0);
 
-  const handleClick = useCallback((e: React.MouseEvent | React.TouchEvent) => {
-    e.preventDefault();
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    let x: number, y: number;
-    if ('touches' in e) {
-      x = e.touches[0].clientX - rect.left;
-      y = e.touches[0].clientY - rect.top;
-    } else {
-      x = e.clientX - rect.left;
-      y = e.clientY - rect.top;
-    }
+  const handleClick = useCallback((e: React.MouseEvent) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
 
     setCoins(c => c + perClick + clickBoost);
     clicksThisTickRef.current += 1;
@@ -523,7 +516,6 @@ export default function App() {
         <button
           className={`click-btn ${btnPulse ? 'clicked' : ''}`}
           onClick={handleClick}
-          onTouchStart={handleClick}
         >
           <span className="btn-text">CLICK</span>
           {floatTexts.map(ft => (
