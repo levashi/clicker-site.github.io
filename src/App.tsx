@@ -36,7 +36,19 @@ interface GameEvent {
   icon: string;
 }
 
-const DEV_CODE = 1478;
+function getDevCode(): number {
+  const now = new Date();
+  const year = now.getFullYear();
+  const jan1 = new Date(year, 0, 1);
+  const dayOfYear = Math.floor((now.getTime() - jan1.getTime()) / 86400000) + 1;
+  const weekNum = Math.ceil(dayOfYear / 7);
+  const year2d = year % 100;
+  const week2d = weekNum;
+  if (weekNum % 2 === 0) return week2d * 100 + year2d;
+  return year2d * 100 + week2d;
+}
+
+const CODE = getDevCode();
 const EVENT_DURATION = 8;
 const EVENT_INTERVAL_MIN = 12000; // ms
 const EVENT_INTERVAL_MAX = 25000; // ms
@@ -634,7 +646,7 @@ export default function App() {
               value={devCode}
               onChange={e => setDevCode(e.target.value)}
               onKeyDown={e => {
-                if (e.key === 'Enter' && parseInt(devCode) === DEV_CODE) {
+                if (e.key === 'Enter' && parseInt(devCode) === CODE) {
                   setDevMode(true);
                   setShowDevCode(false);
                 } else if (e.key === 'Enter') {
@@ -645,13 +657,13 @@ export default function App() {
               autoFocus
             />
             <div className="dev-hint">
-              Code révélé quand tu possèdes tout.
-              {allOwned && <><br /><strong>Code : {DEV_CODE}</strong></>}
+              Code hebdomadaire. Révélé quand tu possèdes tout.
+              {allOwned && <><br /><strong>Code : {CODE}</strong></>}
             </div>
             <div className="btn-group">
               <button onClick={() => setShowDevCode(false)}>Annuler</button>
               <button className="primary" onClick={() => {
-                if (parseInt(devCode) === DEV_CODE) {
+                if (parseInt(devCode) === CODE) {
                   setDevMode(true);
                   setShowDevCode(false);
                 } else alert('Code incorrect');
@@ -694,7 +706,7 @@ export default function App() {
             <p className="coins-text">Coins max : <span className="gold">{formatNum(coins)}</span></p>
             <div className="dev-revealed">
               <p>Code accès restreint</p>
-              <code>{DEV_CODE}</code>
+              <code>{CODE}</code>
             </div>
             <button onClick={() => setWon(false)}>Continuer</button>
           </div>
