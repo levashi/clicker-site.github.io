@@ -351,7 +351,7 @@ export default function App() {
       id: floatId.current++,
       x,
       y,
-      value: `+${perClick}`,
+      value: `+${perClick + clickBoost}`,
     };
     setFloatTexts(prev => [...prev.slice(-5), ft]);
     setTimeout(() => {
