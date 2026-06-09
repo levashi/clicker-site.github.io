@@ -94,6 +94,7 @@ function loadSave() {
         themeIndex: data.themeIndex ?? 0,
         time: data.time ?? 0,
         won: data.won ?? false,
+        showVictory: data.showVictory ?? false,
         bestCoins: data.bestCoins ?? 0,
         everWon: data.everWon ?? false,
       };
@@ -117,6 +118,7 @@ export default function App() {
   const [showDevCode, setShowDevCode] = useState(false);
   const [time, setTime] = useState(save?.time ?? 0);
   const [won, setWon] = useState(save?.won ?? false);
+  const [showVictory, setShowVictory] = useState(save?.showVictory ?? false);
   const [floatTexts, setFloatTexts] = useState<FloatText[]>([]);
   const [btnPulse, setBtnPulse] = useState(false);
   const [activeEvent, setActiveEvent] = useState<GameEvent | null>(null);
@@ -149,9 +151,9 @@ export default function App() {
   // Save
   useEffect(() => {
     localStorage.setItem('clicker-save-v3', JSON.stringify({
-      coins, perClick, perSecond, offers, nextIndex, themeIndex, time, won, bestCoins, everWon
+      coins, perClick, perSecond, offers, nextIndex, themeIndex, time, won, showVictory, bestCoins, everWon
     }));
-  }, [coins, perClick, perSecond, offers, nextIndex, themeIndex, time, won, bestCoins, everWon]);
+  }, [coins, perClick, perSecond, offers, nextIndex, themeIndex, time, won, showVictory, bestCoins, everWon]);
 
   // Game loop
   useEffect(() => {
@@ -388,6 +390,7 @@ export default function App() {
 
     if (!won && newOffers.every(o => o.count > 0)) {
       setWon(true);
+      setShowVictory(true);
       bestCoinsRef.current = coins;
       setBestCoins(coins);
       localStorage.setItem('clicker-best-coins', String(coins));
@@ -426,6 +429,7 @@ export default function App() {
     setNextIndex(0);
     setTime(0);
     setWon(false);
+    setShowVictory(false);
     setClickBoost(0);
     setActiveBoosts([]);
     setCpsDisplay(0);
@@ -678,7 +682,7 @@ export default function App() {
             <button onClick={() => {
               setCoins(0); setPerClick(1); setPerSecond(0);
               setOffers(INITIAL_OFFERS); setNextIndex(0);
-              setWon(false); setTime(0);
+              setWon(false); setShowVictory(false); setTime(0);
             }}>Réinitialiser la partie</button>
             <button onClick={() => setDevMode(false)}>Fermer</button>
           </div>
@@ -686,7 +690,7 @@ export default function App() {
       )}
 
       {/* Victory */}
-      {won && (
+      {showVictory && (
         <div className="victory-overlay">
           <div className="victory-panel">
             <div className="trophy">🏆</div>
@@ -698,7 +702,7 @@ export default function App() {
               <p>Code accès restreint</p>
               <code>{CODE}</code>
             </div>
-            <button onClick={() => setWon(false)}>Continuer</button>
+            <button onClick={() => setShowVictory(false)}>Continuer</button>
           </div>
         </div>
       )}
