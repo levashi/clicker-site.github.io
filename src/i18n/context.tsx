@@ -1,3 +1,5 @@
+declare function gtag(event: string, action: string, params?: Record<string, unknown>): void;
+
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import translations, { type Language } from './translations';
@@ -60,6 +62,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     const base = window.location.pathname.match(/^\/(fr|es|zh|en)/) ? '' : '';
     window.history.pushState(null, '', `/${newLang}${base}`);
     localStorage.setItem('clicker-lang', newLang);
+    gtag('event', 'language_changed', { language: newLang });
   }, []);
 
   const translate = useCallback<TFunction>((key, params) => t(lang, key, params), [lang]);

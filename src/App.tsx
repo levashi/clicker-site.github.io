@@ -1,3 +1,5 @@
+declare function gtag(event: string, action: string, params?: Record<string, unknown>): void;
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Analytics } from '@vercel/analytics/react';
 import { useI18n, SUPPORTED } from './i18n/context';
@@ -231,7 +233,8 @@ export default function App() {
           setShowMilestonePopup(true);
           setMilestoneReady(false);
           setTimeout(() => setMilestoneReady(true), 1000);
-          }
+          gtag('event', 'milestone_reached', { title: m.titleKey, cps: m.cps });
+        }
       });
     }, 200);
     return () => { clearInterval(pushId); clearInterval(displayId); };
@@ -360,7 +363,8 @@ export default function App() {
         break;
     }
 
-     setActiveEvent(null);
+     gtag('event', 'event_accepted', { type: activeEvent.type, cost: activeEvent.cost });
+    setActiveEvent(null);
     if (eventCountdownRef.current) clearInterval(eventCountdownRef.current);
   };
 
@@ -404,6 +408,8 @@ export default function App() {
     setCoins(c => c - currentPrice);
     setPerClick(p => p + offer.perClick);
     setPerSecond(s => s + offer.perSecond);
+    gtag('event', 'purchase', { offer: offer.nameKey, price: currentPrice, index });
+
     const newOffers = [...offers];
     newOffers[index] = { ...offer, count: offer.count + 1 };
     setOffers(newOffers);
@@ -421,6 +427,7 @@ export default function App() {
       setBestCoins(coins);
       localStorage.setItem('clicker-best-coins', String(coins));
       setEverWon(true);
+      gtag('event', 'victory', { time, coins });
     }
   };
 
@@ -429,6 +436,7 @@ export default function App() {
   const rewardPerClick = Math.max(1, Math.round(perClick * 0.25));
 
   const pickReward = (type: string) => {
+    const amount = type === 'coins' ? rewardCoins : type === 'perSecond' ? rewardPerSecond : rewardPerClick;
     switch (type) {
       case 'coins':
         setCoins(c => c + rewardCoins);
@@ -440,6 +448,7 @@ export default function App() {
         setPerClick(p => p + rewardPerClick);
         break;
     }
+    gtag('event', 'reward_chosen', { type, amount });
     setShowMilestonePopup(false);
   };
 
@@ -447,6 +456,7 @@ export default function App() {
   const seconds = time % 60;
 
   const restartGame = () => {
+    gtag('event', 'game_restarted', { coins, time, perClick, perSecond });
     setCoins(0);
     setPerClick(1);
     setPerSecond(0);
@@ -581,7 +591,7 @@ export default function App() {
       {/* Bottom buttons */}
       <div className="bottom-bar">
         <button className="icon-btn" onClick={() => setShowShop(!showShop)}>🛒</button>
-        <button className="icon-btn" onClick={() => setThemeIndex(i => (i + 1) % THEMES.length)} title={t('themeTitle')}>{themeEmoji}</button>
+        <button className="icon-btn" onClick={() => { const next = (themeIndex + 1) % THEMES.length; setThemeIndex(next); gtag('event', 'theme_changed', { theme: THEMES[next], index: next }); }} title={t('themeTitle')}>{themeEmoji}</button>
         <button className="icon-btn" onClick={() => setShowDevCode(!showDevCode)}>🕵️</button>
         <button className="icon-btn restart-btn" onClick={() => { if (confirm(t('restartConfirm'))) restartGame(); }}>↺</button>
       </div>
