@@ -2,6 +2,7 @@ declare function gtag(event: string, action: string, params?: Record<string, unk
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import { useI18n, SUPPORTED } from './i18n/context';
 import type { Language } from './i18n/translations';
 import { LANGUAGES } from './i18n/translations';
@@ -497,6 +498,7 @@ export default function App() {
   return (
     <div className={`game theme-${themeClass}`}>
       <Analytics mode="production" />
+      <SpeedInsights />
       {/* Record flash animation */}
       {recordFlashTime != null && (
         <div className="record-flash">
