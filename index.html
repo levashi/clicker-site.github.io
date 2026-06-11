@@ -1,27 +1,31 @@
 <!doctype html>
-<html lang="fr">
+  <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
-    <meta name="description" content="Clicker Game est un jeu de clic gratuit et addictif en ligne. Mesurez vos clics par seconde (CPS) et débloquez des améliorations pour aller toujours plus loin !" lang="fr">
-    <meta name="description" content="Clicker Game is a free and addictive online clicker game. Track your clicks per second (CPS) and unlock upgrades to keep progressing!" lang="en">
-    <meta name="keywords" content="clicker game, jeu de clic, clicker, récompenses, amélioration, progression, stratégie, jeu de navigateur, gaming casual, défi clicker">
+    <meta name="description" content="Clicker Game is a free and addictive online clicker game. Track your clicks per second (CPS) and unlock upgrades to keep progressing!">
+    <meta name="keywords" content="clicker game, click game, clicker, rewards, upgrades, progression, strategy, browser game, casual gaming, clicker challenge">
     <meta name="author" content="levashi">
     <meta name="robots" content="index, follow">
-    <meta name="language" content="fr">
-    <meta property="og:title" content="Clicker Game - Jeu de Clic">
-    <meta property="og:description" content="Mesurez votre CPS, débloquez des amélioration et devenez le meilleur sur Clicker Game">
+    <meta name="language" content="en">
+    <meta property="og:title" content="Clicker Game">
+    <meta property="og:description" content="Track your CPS, unlock upgrades and become the best on Clicker Game">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://clicker-site.vercel.app">
     <meta property="og:image" content="/preview-lors-du-partage.png">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Clicker Game - Jeu de Clic">
-    <meta name="twitter:description" content="Mesurez votre CPS, débloquez des amélioration et devenez le meilleur sur Clicker Game">
+    <meta name="twitter:title" content="Clicker Game">
+    <meta name="twitter:description" content="Track your CPS, unlock upgrades and become the best on Clicker Game">
     <meta name="twitter:image" content="preview-lors-du-partage.png">
     <meta name="google-site-verification" content="R8gKEkHl-IkCM1bjZeQHJrxdTZYVymZXe48KeqfewYA">
     <link rel="icon" href="/icon-site.ico" type="image/x-icon">
     <link rel="apple-touch-icon" href="/icon-site.png">
-    <title>Clicker Game - Jeu de Clic</title>
+    <link rel="alternate" hreflang="en" href="https://clicker-site.vercel.app/en">
+    <link rel="alternate" hreflang="fr" href="https://clicker-site.vercel.app/fr">
+    <link rel="alternate" hreflang="es" href="https://clicker-site.vercel.app/es">
+    <link rel="alternate" hreflang="zh" href="https://clicker-site.vercel.app/zh">
+    <link rel="alternate" hreflang="x-default" href="https://clicker-site.vercel.app/">
+    <title>Clicker Game</title>
   </head>
   <body>
     <script type="application/ld+json">
@@ -38,6 +42,24 @@
     }
     </script>
     <div id="root"></div>
+    <script>
+      (function(){
+        var p = location.pathname;
+        var langs = ['en','fr','es','zh'];
+        var has = false;
+        for(var i=0;i<langs.length;i++){
+          if(p === '/'+langs[i] || p.startsWith('/'+langs[i]+'/')){has=true;break;}
+        }
+        if(!has && (p==='/'||p==='')){
+          var bl = (navigator.language||'en').toLowerCase();
+          var tl = 'en';
+          if(bl.startsWith('fr')) tl='fr';
+          else if(bl.startsWith('es')) tl='es';
+          else if(bl.startsWith('zh')) tl='zh';
+          location.replace('/'+tl);
+        }
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

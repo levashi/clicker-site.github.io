@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/(fr|es|zh|en)(/.*)?",
+      "destination": "/index.html"
+    }
+  ]
+}

@@ -1806,7 +1806,72 @@ body {
   to { transform: translateY(0); }
 }
 
-/* ===== SCROLLBAR ===== */
+/* ===== LANGUAGE SELECTOR ===== */
+.lang-selector-wrap {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  z-index: 1000;
+}
+
+.lang-btn-flag {
+  background: rgba(22, 27, 34, 0.7);
+  border: 1px solid #30363d;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  font-size: 20px;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+  opacity: 0.6;
+}
+
+.lang-btn-flag:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.lang-dropdown {
+  position: absolute;
+  bottom: 44px;
+  right: 0;
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 10px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 1001;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  min-width: 130px;
+}
+
+.lang-option {
+  background: transparent;
+  border: none;
+  color: #c9d1d9;
+  font-size: 14px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.lang-option:hover {
+  background: #21262d;
+}
+
+.lang-option.active {
+  background: #1f6feb;
+  color: #fff;
+}
 .shop-panel::-webkit-scrollbar {
   width: 6px;
 }
