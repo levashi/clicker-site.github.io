@@ -131,7 +131,15 @@ function loadSave() {
   return null;
 }
 
+function hasLanguagePrefix(): boolean {
+  if (typeof window === 'undefined') return false;
+  const match = window.location.pathname.match(/^\/(en|fr|es|zh)(\/.*)?$/);
+  return !!match;
+}
+
 export default function App() {
+  if (!hasLanguagePrefix()) return null;
+
   const { lang, t, setLang } = useI18n();
   const save = loadSave();
 

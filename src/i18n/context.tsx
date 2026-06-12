@@ -50,12 +50,13 @@ function t(lang: Language, key: keyof (typeof translations)['en'], params?: Reco
 
 export function I18nProvider({ children }: { children: ReactNode }) {
   const pathLang = resolveLangFromPath();
-
-  if (!pathLang) {
-    redirectIfRoot();
-  }
-
   const [lang, setLangState] = useState<Language>(pathLang ?? 'en');
+
+  useEffect(() => {
+    if (!pathLang) {
+      redirectIfRoot();
+    }
+  }, []);
 
   const setLang = useCallback((newLang: Language) => {
     setLangState(newLang);
