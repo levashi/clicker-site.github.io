@@ -1,8 +1,12 @@
 {
   "rewrites": [
     {
-      "source": "/(fr|es|zh|en)(/.*)?",
-      "destination": "/index.html"
+      "source": "/:lang(fr|es|zh|en)",
+      "destination": "/:lang.html"
+    },
+    {
+      "source": "/:lang(fr|es|zh|en)/:rest(.*)",
+      "destination": "/:lang.html"
     }
   ]
 }
