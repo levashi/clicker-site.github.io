@@ -1,22 +1,25 @@
 import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
-import { readFileSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import translations, { LANGUAGES, type Language } from './src/i18n/translations'
 
 const BASE = 'https://clicker-site.vercel.app'
+const LANGS = Object.keys(translations) as Language[]
 
 /*
  * Build-time static localization.
  *
- * The SPA updates title/description/OG client-side after hydration; search
- * engines fetching the raw HTML previously always saw the English defaults,
- * which hurt CTR on /es and /fr. At closeBundle we generate dist/{en,fr,es,zh}.html
- * with localized title/description/OG/schema and a visible "how to play" content
- * section, and vercel.json rewrites /{lang} to them.
+ * dist/{lang}.html : localized title/description/OG + VideoGame schema + a static
+ *   help pill linking to the help page (crawled on first paint).
+ * dist/{lang}/help.html : a real standalone guide page (scrollable, no app JS,
+ *   back button, language switcher) — its own title/description/canonical and
+ *   hreflang cluster, for SEO.
+ * vercel.json rewrites /{lang} and /{lang}/help to them.
  *
- * The meta strings below MUST stay in sync with siteTitle/siteDescription/
- * ogTitle/ogDescription/keywords in src/i18n/translations.ts.
+ * siteTitle/siteDescription/ogTitle/ogDescription/keywords/help stay in sync
+ * with src/i18n/translations.ts (game side); only help-page copy lives here.
  */
 
 type Locale = {
@@ -27,7 +30,6 @@ type Locale = {
   keywords: string
   ogLocale: string
   inLanguage: string
-  helpLabel: string
   section: string
 }
 
@@ -42,7 +44,6 @@ const META: Record<string, Locale> = {
       'clicker game, click game, clicker, measure cps, cps test, rewards, upgrades, progression, browser game, casual gaming, clicker challenge',
     ogLocale: 'en_US',
     inLanguage: 'en',
-    helpLabel: 'Help',
     section: `
     <h2>Free online clicker game — measure your CPS</h2>
     <p>Clicker Game is a free and addictive online clicker game you can play right in your browser: no download, no sign-up, no ads to start a session. Your click record is saved on your device so you can keep chasing it.</p>
@@ -70,7 +71,6 @@ const META: Record<string, Locale> = {
       'clicker game, jeu de clic, jeu de click, mesurer cps, cps test, récompenses, amélioration, progression, jeu de navigateur, gaming casual, défi clicker',
     ogLocale: 'fr_FR',
     inLanguage: 'fr',
-    helpLabel: 'Aide',
     section: `
     <h2>Jeu de clic gratuit — mesure ton CPS</h2>
     <p>Clicker Game est un jeu de clic gratuit et addictif, jouable directement dans ton navigateur : pas de téléchargement, pas d’inscription, et une session immédiate. Ton record est sauvegardé sur ton appareil pour le repousser à tout moment.</p>
@@ -98,7 +98,6 @@ const META: Record<string, Locale> = {
       'clicker game, juego de clics, juego de clicks, juego para hacer clics, medir cps, cps test, recompensas, mejoras, progreso, juego navegador, juego casual, desafio clicker',
     ogLocale: 'es_ES',
     inLanguage: 'es',
-    helpLabel: 'Ayuda',
     section: `
     <h2>Juego de clicks gratis — mide tu CPS</h2>
     <p>Clicker Game es un juego de clics gratis y adictivo al que puedes jugar directamente en tu navegador: sin descargas, sin registro y con una partida inmediata. Tu récord se guarda en tu dispositivo para seguir superándolo.</p>
@@ -117,15 +116,13 @@ const META: Record<string, Locale> = {
   },
   zh: {
     title: 'Clicker Game - 免费在线点击游戏',
-    description:
-      'Clicker Game 是一款免费在线点击游戏。追踪你的每秒点击数（CPS），解锁升级，不断前进！',
+    description: 'Clicker Game 是一款免费在线点击游戏。追踪你的每秒点击数（CPS），解锁升级，不断前进！',
     ogTitle: 'Clicker Game - 免费在线点击游戏',
     ogDescription: '追踪你的CPS，解锁升级，成为Clicker Game中最强玩家',
     keywords:
       '点击游戏, clicker, 点击, cps 测试, 每秒点击数, 奖励, 升级, 进度, 策略, 浏览器游戏, 休闲游戏, 点击挑战',
     ogLocale: 'zh_CN',
     inLanguage: 'zh',
-    helpLabel: '帮助',
     section: `
     <h2>免费在线点击游戏 — 测量你的 CPS</h2>
     <p>Clicker Game 是一款免费在线、即开即玩的点击游戏：无需下载、无需注册，打开浏览器就能开始游戏。你的纪录保存在本地设备上，随时可以继续刷新。</p>
@@ -144,43 +141,94 @@ const META: Record<string, Locale> = {
   },
 }
 
+/* Help-page-only copy (game copy lives in src/i18n/translations.ts) */
+const HELP: Record<string, { title: string; description: string; h1: string; sub: string; back: string }> = {
+  en: {
+    title: 'How to Play Clicker Game — CPS Guide and Tips',
+    description:
+      'Learn how to play Clicker Game: what CPS (clicks per second) means, how to earn coins, buy upgrades and unlock boosts, plus tips to beat your own record.',
+    h1: 'How to play Clicker Game',
+    sub: 'A quick guide to this free clicker game: what CPS is, how to progress, and tips to beat your own record.',
+    back: 'Back',
+  },
+  fr: {
+    title: 'Comment jouer à Clicker Game — Guide du CPS et astuces',
+    description:
+      'Guide complet de Clicker Game : ce que veut dire CPS (clics par seconde), comment gagner des pièces, acheter des améliorations, débloquer des bonus, et astuces pour battre votre record.',
+    h1: 'Comment jouer à Clicker Game',
+    sub: 'Guide rapide de ce jeu de clic gratuit : ce qu’est le CPS, comment progresser, et astuces pour battre votre record.',
+    back: 'Retour',
+  },
+  es: {
+    title: 'Cómo jugar a Clicker Game — Guía de CPS y consejos',
+    description:
+      'Guía completa de Clicker Game: qué significa CPS (clics por segundo), cómo ganar monedas, comprar mejoras, desbloquear bonus y consejos para superar tu récord.',
+    h1: 'Cómo jugar a Clicker Game',
+    sub: 'Guía rápida de este juego de clicks gratis: qué es el CPS, cómo progresar y consejos para superar tu récord.',
+    back: 'Volver',
+  },
+  zh: {
+    title: 'Clicker Game 玩法指南 — CPS 技巧与攻略',
+    description:
+      'Clicker Game 完整指南：CPS（每秒点击数）是什么、如何赚取金币、购买升级、解锁加成，以及刷新自己纪录的技巧。',
+    h1: 'Clicker Game 玩法指南',
+    sub: '本免费在线点击游戏的快速指南：CPS 是什么、如何进步、刷新纪录的技巧。',
+    back: '返回',
+  },
+}
+
 const STYLES = `
-  /* Help pill + guide overlay, injected only on the localized pages.
-     The game keeps its locked viewport: the guide is a fullscreen overlay
-     opened from a discreet bottom-left pill (content stays in the DOM
-     on load, so crawlers read it without any scroll). */
+  /* Game pages: static help pill (bottom-left, links to the help page). */
   .help-btn { position: fixed; left: 14px; bottom: 14px; z-index: 1000;
     background: rgba(13,17,23,.6); border: 1px solid rgba(201,209,217,.22); color: #8b949e;
     font-size: 12px; line-height: 1; padding: 8px 14px; border-radius: 999px;
     cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent;
-    font-family: inherit; transition: color .15s, border-color .15s; }
+    font-family: inherit; text-decoration: none;
+    transition: color .15s, border-color .15s; }
   .help-btn:hover { color: #e6edf3; border-color: rgba(201,209,217,.5); }
-  .seo-intro { position: fixed; inset: 0; z-index: 1001; display: none;
-    background: rgba(13,17,23,.98); overflow-y: auto; -webkit-overflow-scrolling: touch;
-    color: #c9d1d9; line-height: 1.65; font-size: 15px; padding: 64px 20px 48px;
-    user-select: text; }
-  .seo-intro.open { display: block; }
-  .seo-intro-inner { max-width: 760px; margin: 0 auto; }
-  .seo-intro h2 { color: #e6edf3; font-size: 20px; margin: 26px 0 8px; }
-  .seo-intro h2:first-child { margin-top: 0; }
-  .seo-intro p { margin: 8px 0; }
-  .seo-intro ul { margin: 8px 0 8px 22px; }
-  .seo-intro li { margin: 4px 0; }
-  .help-close { position: fixed; top: 14px; right: 16px; width: 36px; height: 36px;
-    border-radius: 50%; background: transparent; border: 1px solid rgba(201,209,217,.22);
-    color: #8b949e; font-size: 16px; line-height: 1; cursor: pointer; }
-  .help-close:hover { color: #e6edf3; border-color: rgba(201,209,217,.5); }
+
+  /* Help pages: regular document, normal scroll. */
+  body.help { overflow: visible; height: auto; }
+  .back-btn { position: fixed; top: 14px; left: 14px; z-index: 1000;
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(13,17,23,.6); border: 1px solid rgba(201,209,217,.22); color: #8b949e;
+    text-decoration: none; font-size: 13px; padding: 8px 14px; border-radius: 999px;
+    font-family: inherit; transition: color .15s, border-color .15s; }
+  .back-btn:hover { color: #e6edf3; border-color: rgba(201,209,217,.5); }
+  .back-btn .arrow { font-size: 16px; line-height: 1; }
+  .help-lang { position: fixed; top: 14px; right: 14px; z-index: 1000; font-family: inherit; }
+  .help-lang > summary { list-style: none; cursor: pointer;
+    background: rgba(13,17,23,.6); border: 1px solid rgba(201,209,217,.22); color: #8b949e;
+    font-size: 13px; padding: 8px 14px; border-radius: 999px; }
+  .help-lang[open] > summary { color: #e6edf3; border-color: rgba(201,209,217,.5); }
+  .help-lang .opts { margin-top: 8px; background: #0d1117; border: 1px solid #30363d;
+    border-radius: 10px; padding: 6px; min-width: 150px; }
+  .help-lang .opts a { display: block; color: #c9d1d9; text-decoration: none;
+    padding: 8px 12px; border-radius: 6px; font-size: 14px; }
+  .help-lang .opts a.active { background: #1f6feb; color: #fff; }
+  .help-lang .opts a:hover { background: #21262d; }
+  .help-page { max-width: 760px; margin: 0 auto; padding: 84px 20px 96px;
+    color: #c9d1d9; line-height: 1.65; font-size: 15px; user-select: text; }
+  .help-page h1 { color: #e6edf3; font-size: 26px; margin: 0 0 6px; }
+  .help-page .subtitle { color: #8b949e; margin: 0 0 12px; }
+  .help-page h2 { color: #e6edf3; font-size: 20px; margin: 26px 0 8px; }
+  .help-page p { margin: 8px 0; }
+  .help-page ul { margin: 8px 0 8px 22px; }
+  .help-page li { margin: 4px 0; }
 `
 
-function schema(lang: string | null): string {
-  const m = lang ? META[lang] : META.en
-  const url = lang ? `${BASE}/${lang}` : `${BASE}/`
+function setAttr(html: string, pattern: RegExp, value: string): string {
+  return html.replace(pattern, (_m, head: string) => head + value + '"')
+}
+
+function gameSchema(lang: string): string {
+  const m = META[lang]
   const game = {
     '@context': 'https://schema.org',
     '@type': 'VideoGame',
     name: m.title,
     description: m.description,
-    url,
+    url: `${BASE}/${lang}`,
     inLanguage: m.inLanguage,
     playMode: 'https://schema.org/BrowserMode',
     genre: 'Casual',
@@ -192,62 +240,134 @@ function schema(lang: string | null): string {
   return `<script type="application/ld+json">${JSON.stringify(game)}</script>`
 }
 
-function setAttr(html: string, pattern: RegExp, value: string): string {
-  return html.replace(pattern, (_m, head: string) => head + value + '"')
+function rootSchema(): string {
+  const game = {
+    '@context': 'https://schema.org',
+    '@type': 'VideoGame',
+    name: META.en.title,
+    description: META.en.description,
+    url: `${BASE}/`,
+    inLanguage: 'en',
+    playMode: 'https://schema.org/BrowserMode',
+    genre: 'Casual',
+    applicationCategory: 'Game',
+    operatingSystem: 'Web browser',
+    author: { '@type': 'Person', name: 'Levashi', url: 'https://github.com/levashi' },
+    offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' },
+  }
+  return `<script type="application/ld+json">${JSON.stringify(game)}</script>`
 }
 
-/** lang: 'en'|'fr'|'es'|'zh' for localized variants, or null for root index.html */
-function localize(base: string, lang: string | null): string {
-  const m = lang ? META[lang] : null
-  const url = lang ? `${BASE}/${lang}` : `${BASE}/`
+function breadcrumbSchema(lang: string): string {
+  const h = HELP[lang]
+  const crumbs = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: META[lang].ogTitle, item: `${BASE}/${lang}` },
+      { '@type': 'ListItem', position: 2, name: h.h1, item: `${BASE}/${lang}/help` },
+    ],
+  }
+  return `<script type="application/ld+json">${JSON.stringify(crumbs)}</script>`
+}
+
+function langSwitcher(current: Language): string {
+  const links = LANGS.map(l =>
+    `      <a href="/${l}/help"${l === current ? ' class="active" aria-current="page"' : ''}>${LANGUAGES[l].flag} ${LANGUAGES[l].native}</a>`
+  ).join('\n')
+  return `<details class="help-lang"><summary aria-label="Language">🌐</summary>\n    <div class="opts">\n${links}\n    </div>\n  </details>`
+}
+
+/** Game variants: dist/{lang}.html — localized meta + VideoGame schema + help pill link. */
+function localize(base: string, lang: Language): string {
+  const m = META[lang]
+  const url = `${BASE}/${lang}`
   let html = base
 
-  if (m) {
-    html = html.replace('<html lang="en">', `<html lang="${m.inLanguage}">`)
-    html = html.replace(/<title>[^<]*<\/title>/, `<title>${m.title}</title>`)
-    html = setAttr(html, /(<meta name="description" content=")[^"]*(")/, m.description)
-    html = setAttr(html, /(<meta name="keywords" content=")[^"]*(")/, m.keywords)
-    html = setAttr(html, /(<meta name="language" content=")[^"]*(")/, m.inLanguage)
-    html = setAttr(html, /(<meta property="og:title" content=")[^"]*(")/, m.ogTitle)
-    html = setAttr(html, /(<meta property="og:description" content=")[^"]*(")/, m.ogDescription)
-    html = setAttr(html, /(<meta name="twitter:title" content=")[^"]*(")/, m.ogTitle)
-    html = setAttr(html, /(<meta name="twitter:description" content=")[^"]*(")/, m.ogDescription)
-  }
-  // absolute URLs + canonical + og:locale for every page
+  html = html.replace('<html lang="en">', `<html lang="${m.inLanguage}">`)
+  html = html.replace(/<title>[^<]*<\/title>/, `<title>${m.title}</title>`)
+  html = setAttr(html, /(<meta name="description" content=")[^"]*(")/, m.description)
+  html = setAttr(html, /(<meta name="keywords" content=")[^"]*(")/, m.keywords)
+  html = setAttr(html, /(<meta name="language" content=")[^"]*(")/, m.inLanguage)
+  html = setAttr(html, /(<meta property="og:title" content=")[^"]*(")/, m.ogTitle)
+  html = setAttr(html, /(<meta property="og:description" content=")[^"]*(")/, m.ogDescription)
+  html = setAttr(html, /(<meta name="twitter:title" content=")[^"]*(")/, m.ogTitle)
+  html = setAttr(html, /(<meta name="twitter:description" content=")[^"]*(")/, m.ogDescription)
+
   html = setAttr(html, /(<meta property="og:url" content=")[^"]*(")/, url)
   html = setAttr(html, /(<meta property="og:image" content=")[^"]*(")/, `${BASE}/preview-lors-du-partage.png`)
   html = setAttr(html, /(<meta name="twitter:image" content=")[^"]*(")/, `${BASE}/preview-lors-du-partage.png`)
   html = html.replace(
     '</head>',
-    `  <link rel="canonical" href="${url}">\n  <meta property="og:locale" content="${(lang ? META[lang] : META.en).ogLocale}">\n  <style>${STYLES}</style>\n</head>`
+    `  <link rel="canonical" href="${url}">\n  <meta property="og:locale" content="${m.ogLocale}">\n  <style>${STYLES}</style>\n</head>`
   )
 
-  html = html.replace(/<script type="application\/ld\+json">[\s\S]*?<\/script>/, schema(lang))
+  html = html.replace(/<script type="application\/ld\+json">[\s\S]*?<\/script>/, gameSchema(lang))
 
-  if (m) {
-    const help = `<button class="help-btn" aria-expanded="false" aria-controls="how-to-play">${m.helpLabel}</button>
-  <section class="seo-intro" id="how-to-play" aria-label="How to play, CPS guide and tips">
-    <button class="help-close" aria-label="Close">✕</button>
-    <div class="seo-intro-inner">${m.section}</div>
-  </section>
-  <script>
-    (function () {
-      var btn = document.querySelector('.help-btn'), panel = document.querySelector('.seo-intro')
-      if (!btn || !panel) return
-      var toggle = function () {
-        var open = panel.classList.toggle('open')
-        btn.setAttribute('aria-expanded', String(open))
-        if (open) panel.scrollTop = 0
-      }
-      btn.addEventListener('click', toggle)
-      panel.addEventListener('click', function (e) {
-        if (e.target === panel || (e.target.classList && e.target.classList.contains('help-close'))) toggle()
-      })
-    })()
-  </script>`
-    html = html.replace('<div id="root"></div>', `<div id="root"></div>\n  ${help}`)
-  }
+  const helpLabel = translations[lang].help
+  const pill = `<a class="help-btn" href="/${lang}/help">${helpLabel}</a>`
+  html = html.replace('<div id="root"></div>', `<div id="root"></div>\n  ${pill}`)
   return html
+}
+
+/** Help pages: dist/{lang}/help.html — standalone guide page, no app JS. */
+function helpPage(base: string, lang: Language): string {
+  const m = META[lang]
+  const h = HELP[lang]
+  const url = `${BASE}/${lang}/help`
+  let html = base
+
+  html = html.replace('<html lang="en">', `<html lang="${m.inLanguage}">`)
+  html = html.replace('<body>', '<body class="help">')
+  html = html.replace(/<title>[^<]*<\/title>/, `<title>${h.title}</title>`)
+  html = setAttr(html, /(<meta name="description" content=")[^"]*(")/, h.description)
+  html = setAttr(html, /(<meta name="language" content=")[^"]*(")/, m.inLanguage)
+  html = setAttr(html, /(<meta property="og:title" content=")[^"]*(")/, h.title)
+  html = setAttr(html, /(<meta property="og:description" content=")[^"]*(")/, h.description)
+  html = setAttr(html, /(<meta name="twitter:title" content=")[^"]*(")/, h.title)
+  html = setAttr(html, /(<meta name="twitter:description" content=")[^"]*(")/, h.description)
+  html = setAttr(html, /(<meta property="og:url" content=")[^"]*(")/, url)
+  html = setAttr(html, /(<meta property="og:image" content=")[^"]*(")/, `${BASE}/preview-lors-du-partage.png`)
+  html = setAttr(html, /(<meta name="twitter:image" content=")[^"]*(")/, `${BASE}/preview-lors-du-partage.png`)
+
+  // help-cluster hreflang replaces the game-cluster alternates
+  html = html.replace(/<link rel="alternate" hreflang="[^"]+" href="[^"]+"\/?>\s*\n?/g, '')
+  const alts = LANGS.map(l =>
+    `  <link rel="alternate" hreflang="${l}" href="${BASE}/${l}/help">`
+  ).join('\n')
+  html = html.replace(
+    '</head>',
+    `${alts}\n  <link rel="alternate" hreflang="x-default" href="${BASE}/en/help">\n  <link rel="canonical" href="${url}">\n  <meta property="og:locale" content="${m.ogLocale}">\n  <style>${STYLES}</style>\n</head>`
+  )
+
+  html = html.replace(/<script type="application\/ld\+json">[\s\S]*?<\/script>/, breadcrumbSchema(lang))
+
+  // no app bundle, no root div, no client redirect on help pages.
+  // NB: the redirect-script regex must not cross </script> boundaries, else it
+  // swallows the gtag block and the whole <head> (non-greedy *? spans blocks).
+  html = html.replace(/<script type="module"[^>]*src="[^"]*"[^>]*><\/script>/, '')
+  html = html.replace(/<script>(?:(?!<\/script>)[\s\S])*location\.replace(?:(?!<\/script>)[\s\S])*<\/script>/, '')
+  html = html.replace('<div id="root"></div>', '')
+
+  const chrome = `<a class="back-btn" href="/${lang}"><span class="arrow" aria-hidden="true">←</span> ${h.back}</a>\n  ${langSwitcher(lang)}\n  <main class="help-page">\n    <h1>${h.h1}</h1>\n    <p class="subtitle">${h.sub}</p>${m.section}\n  </main>`
+  html = html.replace('<body class="help">', `<body class="help">\n  ${chrome}`)
+  return html
+}
+
+function sitemapXml(): string {
+  const x = (loc: string, alts: string, xdefault: string) =>
+    `  <url>\n    <loc>${loc}</loc>\n${alts}    <xhtml:link rel="alternate" hreflang="x-default" href="${xdefault}"/>\n  </url>\n`
+  let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"\n        xmlns:xhtml="http://www.w3.org/1999/xhtml">\n\n`
+  for (const l of LANGS) {
+    const alts = LANGS.map(a => `    <xhtml:link rel="alternate" hreflang="${a}" href="${BASE}/${a}"/>`).join('\n')
+    xml += x(`${BASE}/${l}`, `${alts}\n`, `${BASE}/`)
+  }
+  xml += '\n'
+  for (const l of LANGS) {
+    const alts = LANGS.map(a => `    <xhtml:link rel="alternate" hreflang="${a}" href="${BASE}/${a}/help"/>`).join('\n')
+    xml += x(`${BASE}/${l}/help`, `${alts}\n`, `${BASE}/en/help`)
+  }
+  return xml + '</urlset>\n'
 }
 
 function localizedPages(): Plugin {
@@ -258,10 +378,17 @@ function localizedPages(): Plugin {
     closeBundle() {
       const dir = join(process.cwd(), 'dist')
       const base = readFileSync(join(dir, 'index.html'), 'utf8')
-      writeFileSync(join(dir, 'index.html'), localize(base, null))
-      for (const lang of Object.keys(META)) {
+      writeFileSync(join(dir, 'index.html'), base.replace(
+        /<script type="application\/ld\+json">[\s\S]*?<\/script>/,
+        rootSchema()
+      ))
+      for (const lang of LANGS) {
         writeFileSync(join(dir, `${lang}.html`), localize(base, lang))
+        const helpDir = join(dir, lang)
+        mkdirSync(helpDir, { recursive: true })
+        writeFileSync(join(helpDir, 'help.html'), helpPage(base, lang))
       }
+      writeFileSync(join(dir, 'sitemap.xml'), sitemapXml())
     },
   }
 }

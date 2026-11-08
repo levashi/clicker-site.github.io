@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/:lang(fr|es|zh|en)/help",
+      "destination": "/:lang/help.html"
+    },
+    {
       "source": "/:lang(fr|es|zh|en)",
       "destination": "/:lang.html"
     },

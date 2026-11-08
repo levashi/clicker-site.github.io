@@ -1,22 +1,9 @@
-declare function gtag(event: string, action: string, params?: Record<string, unknown>): void;
-
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import translations, { type Language } from './translations';
+import { BASE_URL, SUPPORTED, I18nContext, translate, type TFunction } from './core';
 
-const BASE_URL = 'https://clicker-site.vercel.app';
-
-type TFunction = (key: keyof (typeof translations)['en'], params?: Record<string, string | number>) => string;
-
-interface I18nContextType {
-  lang: Language;
-  t: TFunction;
-  setLang: (lang: Language) => void;
-}
-
-const I18nContext = createContext<I18nContextType | null>(null);
-
-const SUPPORTED: Language[] = ['en', 'fr', 'es', 'zh'];
+declare function gtag(event: string, action: string, params?: Record<string, unknown>): void;
 
 function detectBrowserLang(): Language {
   const browserLang = (navigator.language || 'en').toLowerCase();
@@ -42,12 +29,6 @@ function redirectIfRoot(): void {
   }
 }
 
-function t(lang: Language, key: keyof (typeof translations)['en'], params?: Record<string, string | number>): string {
-  const str = translations[lang]?.[key] ?? translations.en[key] ?? String(key);
-  if (!params) return str;
-  return str.replace(/\{(\w+)\}/g, (_, k) => String(params[k] ?? `{$}`));
-}
-
 export function I18nProvider({ children }: { children: ReactNode }) {
   const pathLang = resolveLangFromPath();
   const [lang, setLangState] = useState<Language>(pathLang ?? 'en');
@@ -56,17 +37,16 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     if (!pathLang) {
       redirectIfRoot();
     }
-  }, []);
+  }, [pathLang]);
 
   const setLang = useCallback((newLang: Language) => {
     setLangState(newLang);
-    const base = window.location.pathname.match(/^\/(fr|es|zh|en)/) ? '' : '';
-    window.history.pushState(null, '', `/${newLang}${base}`);
+    window.history.pushState(null, '', `/${newLang}`);
     localStorage.setItem('clicker-lang', newLang);
     gtag('event', 'language_changed', { language: newLang });
   }, []);
 
-  const translate = useCallback<TFunction>((key, params) => t(lang, key, params), [lang]);
+  const t = useCallback<TFunction>((key, params) => translate(lang, key, params), [lang]);
 
   useEffect(() => {
     document.documentElement.lang = lang;
@@ -97,6 +77,16 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     if (twDesc) twDesc.setAttribute('content', data.ogDescription);
   }, [lang]);
 
+  // The help button is a static anchor present in the first-render HTML (crawlable);
+  // keep its label and href in sync when the language switches without a reload.
+  useEffect(() => {
+    const pill = document.querySelector('a.help-btn');
+    if (pill) {
+      pill.textContent = translate(lang, 'help');
+      pill.setAttribute('href', `/${lang}/help`);
+    }
+  }, [lang]);
+
   useEffect(() => {
     document.querySelectorAll('link[rel="alternate"][hreflang]').forEach(el => el.remove());
     document.querySelectorAll('link[rel="canonical"]').forEach(el => el.remove());
@@ -119,16 +109,8 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   }, [lang]);
 
   return (
-    <I18nContext.Provider value={{ lang, t: translate, setLang }}>
+    <I18nContext.Provider value={{ lang, t, setLang }}>
       {children}
     </I18nContext.Provider>
   );
 }
-
-export function useI18n() {
-  const ctx = useContext(I18nContext);
-  if (!ctx) throw new Error('useI18n must be used within I18nProvider');
-  return ctx;
-}
-
-export { SUPPORTED, BASE_URL };

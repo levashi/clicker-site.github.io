@@ -3,13 +3,14 @@ declare function gtag(event: string, action: string, params?: Record<string, unk
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
-import { useI18n, SUPPORTED } from './i18n/context';
-import type { Language } from './i18n/translations';
+import { useI18n } from './i18n/useI18n';
+import { SUPPORTED } from './i18n/core';
+import type { Language, TranslationKey } from './i18n/translations';
 import { LANGUAGES } from './i18n/translations';
 import './App.css';
 
 interface Offer {
-  nameKey?: string;
+  nameKey: TranslationKey;
   name?: string;
   perClick: number;
   perSecond: number;
@@ -28,7 +29,7 @@ interface FloatText {
 
 interface Milestone {
   cps: number;
-  titleKey: string;
+  titleKey: TranslationKey;
   emoji: string;
   reached: boolean;
 }
@@ -36,12 +37,25 @@ interface Milestone {
 interface GameEvent {
   id: number;
   type: 'boost' | 'discount' | 'windfall';
-  title: string;
-  desc: string;
+  // Translated at render time (never stored) so an in-flight toast follows
+  // a mid-game language switch without a reload.
+  params: Record<string, string | number>;
   cost: number;
   timeLeft: number;
   icon: string;
 }
+
+const EVENT_TEXT_KEYS: Record<GameEvent['type'], { title: TranslationKey; desc: TranslationKey }> = {
+  boost: { title: 'boostTitle', desc: 'boostDesc' },
+  discount: { title: 'discountTitle', desc: 'discountDesc' },
+  windfall: { title: 'windfallTitle', desc: 'windfallDesc' },
+};
+
+const CONFETTI_PIECES = '🎉🎊✨🎉🎊✨🎉🎊✨🎉🎊✨'.split('').map(c => ({
+  c,
+  left: Math.random() * 100,
+  delay: Math.random() * 0.5,
+}));
 
 function getDevCode(): number {
   const now = new Date();
@@ -83,7 +97,7 @@ function getOfferPrice(basePrice: number, multiplier: number, count: number): nu
   return Math.floor(basePrice * Math.pow(multiplier, count));
 }
 
-const NAME_TO_KEY: Record<string, string> = {
+const NAME_TO_KEY: Record<string, TranslationKey> = {
   'Déguisement': 'offerDeguisement',
   'Bonbon Maléfique': 'offerBonbonMalefique',
   'Malédiction du Sang': 'offerMaledictionSang',
@@ -127,7 +141,7 @@ function loadSave() {
         everWon: data.everWon ?? false,
       };
     }
-  } catch {}
+  } catch { /* corrupted or unsupported save — start fresh */ }
   return null;
 }
 
@@ -139,7 +153,10 @@ function hasLanguagePrefix(): boolean {
 
 export default function App() {
   if (!hasLanguagePrefix()) return null;
+  return <Game />;
+}
 
+function Game() {
   const { lang, t, setLang } = useI18n();
   const save = loadSave();
 
@@ -161,7 +178,7 @@ export default function App() {
   const [activeEvent, setActiveEvent] = useState<GameEvent | null>(null);
   const [nextBuyDiscount, setNextBuyDiscount] = useState(0);
   const [clickBoost, setClickBoost] = useState(0);
-  const [activeBoosts, setActiveBoosts] = useState<{id: string; label: string; expiresAt: number}[]>([]);
+  const [activeBoosts, setActiveBoosts] = useState<{ id: string; kind: 'boost' | 'discount'; bonus?: number }[]>([]);
   const [bestCoins, setBestCoins] = useState(save?.bestCoins ?? 0);
   const [everWon, setEverWon] = useState(save?.everWon ?? false);
   const [recordFlashTime, setRecordFlashTime] = useState<number | null>(null);
@@ -255,9 +272,9 @@ export default function App() {
   const coinsRef = useRef(coins);
   const perClickRef = useRef(perClick);
   const perSecondRef = useRef(perSecond);
-  coinsRef.current = coins;
-  perClickRef.current = perClick;
-  perSecondRef.current = perSecond;
+  useEffect(() => { coinsRef.current = coins }, [coins]);
+  useEffect(() => { perClickRef.current = perClick }, [perClick]);
+  useEffect(() => { perSecondRef.current = perSecond }, [perSecond]);
 
   const triggerEvent = useCallback(() => {
     const types: Array<'boost' | 'discount' | 'windfall'> = ['boost', 'discount', 'windfall'];
@@ -271,8 +288,7 @@ export default function App() {
         event = {
           id: Date.now(),
           type: 'boost',
-          title: t('boostTitle'),
-          desc: t('boostDesc', { bonus }),
+          params: { bonus },
           cost: baseCost,
           timeLeft: EVENT_DURATION,
           icon: '⚡',
@@ -283,8 +299,7 @@ export default function App() {
         event = {
           id: Date.now(),
           type: 'discount',
-          title: t('discountTitle'),
-          desc: t('discountDesc'),
+          params: {},
           cost: Math.floor(baseCost * 0.5),
           timeLeft: EVENT_DURATION,
           icon: '🏷️',
@@ -295,8 +310,7 @@ export default function App() {
         event = {
           id: Date.now(),
           type: 'windfall',
-          title: t('windfallTitle'),
-          desc: t('windfallDesc', { amount }),
+          params: { amount },
           cost: Math.floor(baseCost * 0.3),
           timeLeft: EVENT_DURATION,
           icon: '💎',
@@ -324,7 +338,7 @@ export default function App() {
       setActiveEvent(null);
       if (eventCountdownRef.current) clearInterval(eventCountdownRef.current);
     }, EVENT_DURATION * 1000);
-  }, [t]);
+  }, []);
 
   useEffect(() => {
     const initialDelay = 5000 + Math.random() * 5000;
@@ -353,8 +367,7 @@ export default function App() {
         const bonus = Math.max(1, Math.floor(perClickRef.current * 0.3));
         setClickBoost(prev => prev + bonus);
         const id = `boost_${Date.now()}`;
-        const expiresAt = Date.now() + 30000;
-        setActiveBoosts(prev => [...prev, { id, label: t('boostBadge', { bonus }), expiresAt }]);
+        setActiveBoosts(prev => [...prev, { id, kind: 'boost', bonus }]);
         setTimeout(() => {
           setClickBoost(b => b - bonus);
           setActiveBoosts(prev => prev.filter(b => b.id !== id));
@@ -364,7 +377,7 @@ export default function App() {
       case 'discount': {
         setNextBuyDiscount(0.3);
         const id = `discount_${Date.now()}`;
-        setActiveBoosts(prev => [...prev, { id, label: t('discountBadge'), expiresAt: 0 }]);
+        setActiveBoosts(prev => [...prev, { id, kind: 'discount' }]);
         break;
       }
       case 'windfall':
@@ -421,13 +434,15 @@ export default function App() {
 
     const newOffers = [...offers];
     newOffers[index] = { ...offer, count: offer.count + 1 };
-    setOffers(newOffers);
 
     const next = index + 1;
+    let unlockedNextIndex = nextIndex;
     if (next < newOffers.length && !newOffers[next].unlocked) {
       newOffers[next] = { ...newOffers[next], unlocked: true };
-      setNextIndex(next);
+      unlockedNextIndex = next;
     }
+    setOffers(newOffers);
+    if (unlockedNextIndex !== nextIndex) setNextIndex(unlockedNextIndex);
 
     if (!won && newOffers.every(o => o.count > 0)) {
       setWon(true);
@@ -522,8 +537,8 @@ export default function App() {
           <div className="event-toast-body">
             <span className="event-toast-icon">{activeEvent.icon}</span>
             <div className="event-toast-info">
-              <span className="event-toast-title">{activeEvent.title}</span>
-              <span className="event-toast-desc">{activeEvent.desc}</span>
+              <span className="event-toast-title">{t(EVENT_TEXT_KEYS[activeEvent.type].title)}</span>
+              <span className="event-toast-desc">{t(EVENT_TEXT_KEYS[activeEvent.type].desc, activeEvent.params)}</span>
             </div>
             <button
               className={`event-toast-btn ${coins >= activeEvent.cost ? 'affordable' : ''}`}
@@ -568,7 +583,7 @@ export default function App() {
         {activeBoosts.length > 0 && (
           <div className="boosts-inline">
             {activeBoosts.map(b => (
-              <span key={b.id} className="boost-badge">{b.label}</span>
+              <span key={b.id} className="boost-badge">{b.kind === 'boost' ? t('boostBadge', { bonus: b.bonus ?? 0 }) : t('discountBadge')}</span>
             ))}
           </div>
         )}
@@ -657,7 +672,7 @@ export default function App() {
                     <div className="shop-item-info">
                       <span className="shop-item-name">
                         <span className="icon">{isLocked ? '🔒' : offer.perClick ? '⚡' : '💰'}</span>
-                        {t(offer.nameKey as any)}
+                        {t(offer.nameKey)}
                       </span>
                       <span className="shop-item-desc">
                         {offer.perClick
@@ -686,15 +701,15 @@ export default function App() {
         <div className="milestone-overlay" onClick={() => setShowMilestonePopup(false)}>
           <div className="milestone-panel" onClick={e => e.stopPropagation()}>
             <div className="milestone-confetti">
-              {'🎉🎊✨🎉🎊✨🎉🎊✨🎉🎊✨'.split('').map((c, i) => (
-                <span key={i} className="confetti-piece" style={{
-                  left: `${Math.random() * 100}%`,
-                  animationDelay: `${Math.random() * 0.5}s`,
-                }}>{c}</span>
+              {CONFETTI_PIECES.map(p => (
+                <span key={`${p.c}-${p.left.toFixed(2)}`} className="confetti-piece" style={{
+                  left: `${p.left}%`,
+                  animationDelay: `${p.delay}s`,
+                }}>{p.c}</span>
               ))}
             </div>
             <div className="milestone-emoji">{activeMilestone.emoji}</div>
-            <h2>{t(activeMilestone.titleKey as any)}</h2>
+            <h2>{t(activeMilestone.titleKey)}</h2>
             <p className="milestone-subtitle">{t('milestoneSubtitle', { cps: activeMilestone.cps })}</p>
             <div className={`milestone-choices ${milestoneReady ? '' : 'locked'}`}>
               <button className="choice-btn gold" onClick={() => pickReward('coins')}>

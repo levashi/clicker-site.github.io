@@ -70,6 +70,7 @@ const translations = {
     ogTitle: 'Clicker Game - Free Online Clicker Game',
     ogDescription: 'Track your CPS, unlock upgrades and become the best on Clicker Game',
     keywords: 'clicker game, click game, clicker, rewards, upgrades, progression, strategy, browser game, casual gaming, clicker challenge',
+    help: 'Help',
   },
   fr: {
     recordFlash: '🏆 NOUVEAU RECORD COINS ! 🏆',
@@ -142,6 +143,7 @@ const translations = {
     ogTitle: 'Clicker Game - Jeu de Clic Gratuit',
     ogDescription: 'Mesurez votre CPS, débloquez des améliorations et devenez le meilleur sur Clicker Game',
     keywords: 'clicker game, jeu de clic, clicker, récompenses, amélioration, progression, stratégie, jeu de navigateur, gaming casual, défi clicker',
+    help: 'Aide',
   },
   es: {
     recordFlash: '🏆 ¡NUEVO RÉCORD DE MONEDAS! 🏆',
@@ -214,6 +216,7 @@ const translations = {
     ogTitle: 'Clicker Game - Juego de Clics Gratis',
     ogDescription: 'Mide tu CPS, desbloquea mejoras y conviértete en el mejor en Clicker Game',
     keywords: 'clicker game, juego de clics, clicker, recompensas, mejoras, progreso, estrategia, juego navegador, juego casual, desafio clicker',
+    help: 'Ayuda',
   },
   zh: {
     recordFlash: '🏆 新金币记录！🏆',
@@ -286,10 +289,12 @@ const translations = {
     ogTitle: 'Clicker Game - 免费在线点击游戏',
     ogDescription: '追踪你的CPS，解锁升级，成为Clicker Game中最强玩家',
     keywords: '点击游戏, clicker, 点击, 奖励, 升级, 进度, 策略, 浏览器游戏, 休闲游戏, 点击挑战',
+    help: '帮助',
   },
 } as const;
 
 export type Language = keyof typeof translations;
+export type TranslationKey = keyof (typeof translations)['en'];
 export const LANGUAGES: Record<Language, { label: string; native: string; flag: string }> = {
   en: { label: 'English', native: 'EN', flag: '🇬🇧' },
   fr: { label: 'Français', native: 'FR', flag: '🇫🇷' },
