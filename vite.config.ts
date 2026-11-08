@@ -27,6 +27,7 @@ type Locale = {
   keywords: string
   ogLocale: string
   inLanguage: string
+  helpLabel: string
   section: string
 }
 
@@ -41,6 +42,7 @@ const META: Record<string, Locale> = {
       'clicker game, click game, clicker, measure cps, cps test, rewards, upgrades, progression, browser game, casual gaming, clicker challenge',
     ogLocale: 'en_US',
     inLanguage: 'en',
+    helpLabel: 'Help',
     section: `
     <h2>Free online clicker game — measure your CPS</h2>
     <p>Clicker Game is a free and addictive online clicker game you can play right in your browser: no download, no sign-up, no ads to start a session. Your click record is saved on your device so you can keep chasing it.</p>
@@ -68,6 +70,7 @@ const META: Record<string, Locale> = {
       'clicker game, jeu de clic, jeu de click, mesurer cps, cps test, récompenses, amélioration, progression, jeu de navigateur, gaming casual, défi clicker',
     ogLocale: 'fr_FR',
     inLanguage: 'fr',
+    helpLabel: 'Aide',
     section: `
     <h2>Jeu de clic gratuit — mesure ton CPS</h2>
     <p>Clicker Game est un jeu de clic gratuit et addictif, jouable directement dans ton navigateur : pas de téléchargement, pas d’inscription, et une session immédiate. Ton record est sauvegardé sur ton appareil pour le repousser à tout moment.</p>
@@ -95,6 +98,7 @@ const META: Record<string, Locale> = {
       'clicker game, juego de clics, juego de clicks, juego para hacer clics, medir cps, cps test, recompensas, mejoras, progreso, juego navegador, juego casual, desafio clicker',
     ogLocale: 'es_ES',
     inLanguage: 'es',
+    helpLabel: 'Ayuda',
     section: `
     <h2>Juego de clicks gratis — mide tu CPS</h2>
     <p>Clicker Game es un juego de clics gratis y adictivo al que puedes jugar directamente en tu navegador: sin descargas, sin registro y con una partida inmediata. Tu récord se guarda en tu dispositivo para seguir superándolo.</p>
@@ -121,6 +125,7 @@ const META: Record<string, Locale> = {
       '点击游戏, clicker, 点击, cps 测试, 每秒点击数, 奖励, 升级, 进度, 策略, 浏览器游戏, 休闲游戏, 点击挑战',
     ogLocale: 'zh_CN',
     inLanguage: 'zh',
+    helpLabel: '帮助',
     section: `
     <h2>免费在线点击游戏 — 测量你的 CPS</h2>
     <p>Clicker Game 是一款免费在线、即开即玩的点击游戏：无需下载、无需注册，打开浏览器就能开始游戏。你的纪录保存在本地设备上，随时可以继续刷新。</p>
@@ -140,17 +145,31 @@ const META: Record<string, Locale> = {
 }
 
 const STYLES = `
-  /* Scoped to pages that embed the SEO intro — unlocks scroll without
-     touching the game's own CSS (body overflow:hidden + #root:100vh). */
-  body:has(.seo-intro) { overflow: visible; height: auto; }
-  body:has(.seo-intro) #root { height: 100vh; }
-  .seo-intro { background: #0d1117; color: #c9d1d9; max-width: 760px; margin: 0 auto;
-    padding: 40px 20px 56px; line-height: 1.65; font-size: 15px; user-select: text; }
+  /* Help pill + guide overlay, injected only on the localized pages.
+     The game keeps its locked viewport: the guide is a fullscreen overlay
+     opened from a discreet bottom-left pill (content stays in the DOM
+     on load, so crawlers read it without any scroll). */
+  .help-btn { position: fixed; left: 14px; bottom: 14px; z-index: 1000;
+    background: rgba(13,17,23,.6); border: 1px solid rgba(201,209,217,.22); color: #8b949e;
+    font-size: 12px; line-height: 1; padding: 8px 14px; border-radius: 999px;
+    cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent;
+    font-family: inherit; transition: color .15s, border-color .15s; }
+  .help-btn:hover { color: #e6edf3; border-color: rgba(201,209,217,.5); }
+  .seo-intro { position: fixed; inset: 0; z-index: 1001; display: none;
+    background: rgba(13,17,23,.98); overflow-y: auto; -webkit-overflow-scrolling: touch;
+    color: #c9d1d9; line-height: 1.65; font-size: 15px; padding: 64px 20px 48px;
+    user-select: text; }
+  .seo-intro.open { display: block; }
+  .seo-intro-inner { max-width: 760px; margin: 0 auto; }
   .seo-intro h2 { color: #e6edf3; font-size: 20px; margin: 26px 0 8px; }
   .seo-intro h2:first-child { margin-top: 0; }
   .seo-intro p { margin: 8px 0; }
   .seo-intro ul { margin: 8px 0 8px 22px; }
   .seo-intro li { margin: 4px 0; }
+  .help-close { position: fixed; top: 14px; right: 16px; width: 36px; height: 36px;
+    border-radius: 50%; background: transparent; border: 1px solid rgba(201,209,217,.22);
+    color: #8b949e; font-size: 16px; line-height: 1; cursor: pointer; }
+  .help-close:hover { color: #e6edf3; border-color: rgba(201,209,217,.5); }
 `
 
 function schema(lang: string | null): string {
@@ -206,10 +225,27 @@ function localize(base: string, lang: string | null): string {
   html = html.replace(/<script type="application\/ld\+json">[\s\S]*?<\/script>/, schema(lang))
 
   if (m) {
-    html = html.replace(
-      '<div id="root"></div>',
-      `<div id="root"></div>\n  <section class="seo-intro" aria-label="About the game, CPS guide and tips">${m.section}\n  </section>`
-    )
+    const help = `<button class="help-btn" aria-expanded="false" aria-controls="how-to-play">${m.helpLabel}</button>
+  <section class="seo-intro" id="how-to-play" aria-label="How to play, CPS guide and tips">
+    <button class="help-close" aria-label="Close">✕</button>
+    <div class="seo-intro-inner">${m.section}</div>
+  </section>
+  <script>
+    (function () {
+      var btn = document.querySelector('.help-btn'), panel = document.querySelector('.seo-intro')
+      if (!btn || !panel) return
+      var toggle = function () {
+        var open = panel.classList.toggle('open')
+        btn.setAttribute('aria-expanded', String(open))
+        if (open) panel.scrollTop = 0
+      }
+      btn.addEventListener('click', toggle)
+      panel.addEventListener('click', function (e) {
+        if (e.target === panel || (e.target.classList && e.target.classList.contains('help-close'))) toggle()
+      })
+    })()
+  </script>`
+    html = html.replace('<div id="root"></div>', `<div id="root"></div>\n  ${help}`)
   }
   return html
 }
