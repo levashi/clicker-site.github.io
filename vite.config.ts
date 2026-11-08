@@ -301,6 +301,11 @@ function localize(base: string, lang: Language): string {
     '</head>',
     `  <link rel="canonical" href="${url}">\n  <meta property="og:locale" content="${m.ogLocale}">\n  <style>${STYLES}</style>\n</head>`
   )
+  // x-default must point at /en (the real default page) — / is now a 301 to /en
+  html = html.replace(
+    /<link rel="alternate" hreflang="x-default" href="[^"]*"\/?>/,
+    `<link rel="alternate" hreflang="x-default" href="${BASE}/en">`
+  )
 
   html = html.replace(/<script type="application\/ld\+json">[\s\S]*?<\/script>/, gameSchema(lang))
 
@@ -360,7 +365,7 @@ function sitemapXml(): string {
   let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"\n        xmlns:xhtml="http://www.w3.org/1999/xhtml">\n\n`
   for (const l of LANGS) {
     const alts = LANGS.map(a => `    <xhtml:link rel="alternate" hreflang="${a}" href="${BASE}/${a}"/>`).join('\n')
-    xml += x(`${BASE}/${l}`, `${alts}\n`, `${BASE}/`)
+    xml += x(`${BASE}/${l}`, `${alts}\n`, `${BASE}/en`)
   }
   xml += '\n'
   for (const l of LANGS) {

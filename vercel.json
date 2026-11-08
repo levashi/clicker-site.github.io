@@ -1,4 +1,11 @@
 {
+  "redirects": [
+    {
+      "source": "/",
+      "destination": "/en",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/:lang(fr|es|zh|en)/help",
